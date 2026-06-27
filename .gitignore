@@ -1,5 +1,4 @@
-data/
-*.csv.gz
+data/*.csv.gz
 
 __pycache__/
 *.pyc
@@ -8,4 +7,4 @@ __pycache__/
 venv/
 .venv/
 
-rapport/AI_Agent.md
+rapport/
