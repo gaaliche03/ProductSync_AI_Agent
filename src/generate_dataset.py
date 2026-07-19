@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 import os
+
 random.seed(42)
 np.random.seed(42)
 
@@ -23,7 +24,7 @@ COLONNES = [
 
 #read csv file de Open Food Facts
 print("Lecture du csv de Open Food Facts ")
-df=pd.read_csv(r"C:\Users\MSI\Documents\ProductSync\data\en.openfoodfacts.org.products.csv.gz",sep="\t",encoding="utf-8",nrows=5000,low_memory=False,usecols=COLONNES)
+df=pd.read_csv(r"C:\Users\MSI\Documents\ProductSync\data\en.openfoodfacts.org.products.csv.gz",sep="\t",encoding="utf-8",nrows=10000,low_memory=False,usecols=COLONNES)
 
 print(df.columns)
 
@@ -34,7 +35,7 @@ for col in COLONNES:
 
 #garder que kes lignes avec un nom produit valide
 df=df[df["product_name"].notna() & (df["product_name"].str.strip() != "")]
-df = df[df["energy-kcal_100g"].notna()].head(100).reset_index(drop=True)
+df = df[df["energy-kcal_100g"].notna()].head(150).reset_index(drop=True)
 print(f"{len(df)} produits retenus")
 
 #ajouter col price et stock 
@@ -50,7 +51,6 @@ df["categories_en"]= df["categories_en"].apply(first_value)
 df["main_category_en"]= df["main_category_en"].apply(first_value)
 df["labels_en"]= df["labels_en"].apply(first_value)
 df["countries_en"]= df["countries_en"].apply(first_value)
-df["packaging_en"]= df["packaging_en"].apply(first_value)
 df["ingredients_text"] = df["ingredients_text"].apply(lambda x: str(x)[:150].strip() if pd.notna(x) else np.nan)
 
 #dans cette partie, faut salir les données pour préarer une dataset de test
@@ -74,17 +74,14 @@ PRICE_FORMATS = [
     lambda p: f"EUR {p}",
 ]
 CAT_ABBREVS = {
-    "beverage":  ["bev", "BEV", "Bvrg", "boissons"],
-    "snack":     ["snk", "SNACK", "Snk.", "en-cas"],
-    "dairy":     ["dair", "DAIRY", "lait", "Ltr"],
-    "cereal":    ["cer", "CER", "céréal", "Cer."],
-    "meat":      ["meat", "MEAT", "viande", "Mts"],
-    "juice":     ["jus", "JUICE", "Jc.", "JUS"],
-    "bread":     ["bread", "BREAD", "pain", "Brd"],
-    "sauce":     ["sce", "SAUCE", "Sce.", "sauces"],
-    "cosmetic":  ["cosm", "COSM", "beauté", "Csm"],
-    "hygiene":   ["hyg", "HYG", "hygiène", "Hyg."],
-    "cleaning":  ["cln", "CLEAN", "nettoy", "Cln"],
+    "beverage":["bev", "BEV", "Bvrg", "boissons"],
+    "snack":["snk", "SNACK", "Snk.", "en-cas"],
+    "dairy":["dair", "DAIRY", "lait", "Ltr"],
+    "cereal":["cer", "CER", "céréal", "Cer."],
+    "meat":["meat", "MEAT", "viande", "Mts"],
+    "juice":["jus", "JUICE", "Jc.", "JUS"],
+    "bread":["bread", "BREAD", "pain", "Brd"],
+    "sauce":["sce", "SAUCE", "Sce.", "sauces"]
 }
  
 def dirty_category(cat):
@@ -113,8 +110,6 @@ n = len(df)
 #case alétoire sur texte des cols
 df["product_name"]= df["product_name"].apply(random_case)
 df["brands"]= df["brands"].apply(random_case)
-df["generic_name"]= df["generic_name"].apply(random_case)
-df["abbreviated_product_name"]= df["abbreviated_product_name"].apply(random_case)
 #prix mal formé
 df["price"] = df["price"].apply(lambda p: random.choice(PRICE_FORMATS)(p))
 df["categories_en"]    = df["categories_en"].apply(dirty_category)
@@ -125,7 +120,7 @@ df["stock"] = df["stock"].apply(dirty_stock)
 for col in ["energy-kcal_100g", "fat_100g", "sugars_100g", "proteins_100g", "salt_100g"]:
     df[col] = df[col].apply(dirty_numeric)
 #injection de nulls (10% par col)
-for col in ["ingredients_text", "categories_en", "price", "brands", "allergens", "labels_en"]:
+for col in ["ingredients_text", "categories_en", "price", "brands", "labels_en"]:
     idx = random.sample(range(n), k=max(1, n // 10))
     df.loc[idx, col] = np.nan
 #descrip vides(20%)
@@ -137,18 +132,13 @@ df = pd.concat([df, dup_rows], ignore_index=True)
 #renommer les cols q'une facon ambigus
 df.rename(columns={
     "product_name":"Prod Name",
-    "abbreviated_product_name": "Short Name",
-    "generic_name":"Generic",
     "brands":"Brand",
     "quantity":"Qty/Vol",
     "categories_en":"Cat",
     "main_category_en":"Main Cat",
     "labels_en":"Labels",
     "ingredients_text":"Desc",
-    "packaging_en":"Pack",
-    "allergens":"Allergens",
     "countries_en":"Country",
-    "stores":"Store",
     "energy-kcal_100g":"Kcal",
     "fat_100g":"Fat",
     "sugars_100g":"Sugar",
@@ -161,3 +151,5 @@ df.rename(columns={
 os.makedirs(r"C:\Users\MSI\Documents\ProductSync\data\input", exist_ok=True)
 out = r"C:\Users\MSI\Documents\ProductSync\data\input\products_raw.xlsx"
 df.to_excel(out, index=False, sheet_name="Products")
+
+
