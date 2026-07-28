@@ -1,0 +1,65 @@
+import json
+import os
+from google import genai
+from dotenv import load_dotenv
+
+load_dotenv()
+client = genai.Client(api_key=os.getenv("API_KEY"))
+SCHEMA_CIBLE = [
+    "product_name", "brand", "category", "quantity",
+    "price", "stock", "description", "extra_info",
+    "country", "labels", "status"
+]
+#ft permet d'envoyer les col names to llm pour les mapper pour avoir schema cible et leurs score de confience
+def map_columns(columns_info):
+    cols_summary = ""
+    for col, info in columns_info.items():
+        sample = ", ".join(str(s) for s in info["sample"][:2])
+        cols_summary += f'- "{col}": type={info["type"]}, examples=[{sample}]\n'
+
+    prompt = f"""You are a data engineering expert specialized in product catalog normalization.
+    Below are the columns from a raw product Excel file:
+    {cols_summary}
+    Target schema to map toward:
+    {SCHEMA_CIBLE}
+    Rules:
+    - Every raw column must have exactly one target field
+    - If a column does not match any target, use "ignore" as target
+    - confidence = your certainty from 0 to 100
+    - Columns related to nutrition, specs, materials, or any product-specific attributes → map to "extra_info"
+    - Return ONLY a valid JSON object, no text before or after, no markdown
+    Expected format:
+    {{
+    "raw_column_name": {{"target": "target_field", "confidence": score}},
+    ...
+    }}
+"""
+    response = client.models.generate_content(model="gemini-3.5-flash",contents=prompt,)
+    raw = response.text.strip()
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    mapping = json.loads(raw)
+
+    return mapping
+
+
+if __name__ == "__main__":
+    columns_info = {
+        "Prod Name":{"type": "text","null_%": 0.0,  "sample": ["pinto bean", "KETO GRANOLA"]},
+        "Brand":{"type": "text","null_%": 42.6, "sample": ["central bean", "Danone"]},
+        "Cat":{"type": "text","null_%": 77.8, "sample": ["boissons", "Bvrg"]},
+        "Main Cat":{"type": "text","null_%": 77.8, "sample": ["Asian", "sce"]},
+        "Qty/Vol":{"type": "mixed","null_%": 74.1, "sample": ["250g", "3000ml"]},
+        "Labels":{"type": "text","null_%": 83.3, "sample": ["Organic", "No GMOs"]},
+        "Country":{"type": "text","null_%": 0.0,  "sample": ["France", "Germany"]},
+        "Desc":{"type": "text","null_%": 90.7, "sample": ["Wheat Flour, Sugar..."]},
+        "Kcal":{"type": "numeric","null_%": 0.0,  "sample": ["261,4", "580.6"]},
+        "Fat":{"type": "numeric","null_%": 2.8,  "sample": ["10.2", "54.8 g"]},
+        "Sugar":{"type": "numeric","null_%": 11.1, "sample": ["4.9", "3.2 g"]},
+        "Prot":{"type": "numeric","null_%": 2.8,  "sample": ["17.5", "5.9"]},
+        "Salt":{"type": "numeric","null_%": 29.6, "sample": ["0,7", "0.27"]},
+        "Prix (€)":{"type": "numeric","null_%": 12.0, "sample": ["EUR 3.49", "$33.37"]},
+        "Qty Avail":{"type": "numeric","null_%": 0.0,  "sample": ["5", "274"]},
+    }
+
+    result = map_columns(columns_info)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
