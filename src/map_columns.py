@@ -1,17 +1,5 @@
 import json
 import os
-<<<<<<< HEAD
-from google import genai
-from dotenv import load_dotenv
-
-load_dotenv()
-client = genai.Client(api_key=os.getenv("API_KEY"))
-SCHEMA_CIBLE = [
-    "product_name", "brand", "category", "quantity",
-    "price", "stock", "description", "extra_info",
-    "country", "labels", "status"
-]
-=======
 from groq import Groq
 from dotenv import load_dotenv
 import time
@@ -19,7 +7,7 @@ import time
 load_dotenv()
 client = Groq(api_key=os.getenv("API_KEY"))
 schema_cible = ["product_name","brand","category","quantity","price","stock","description","extra_info","country","labels","status"]
->>>>>>> 2d0e8fb (Modification de analyze_file)
+
 #ft permet d'envoyer les col names to llm pour les mapper pour avoir schema cible et leurs score de confience
 def map_columns(columns_info):
     cols_summary = ""
@@ -31,18 +19,12 @@ def map_columns(columns_info):
     Below are the columns from a raw product Excel file:
     {cols_summary}
     Target schema to map toward:
-<<<<<<< HEAD
-    {SCHEMA_CIBLE}
-    Rules:
-    - Every raw column must have exactly one target field
-    - If a column does not match any target, use "ignore" as target
-=======
     {schema_cible}
     Rules:
     - Every raw column must have exactly one target field
     - If a column does not match any target, use "ignore" as target
     - If two columns map to the same target, keep both but lower the confidence of the less reliable one
->>>>>>> 2d0e8fb (Modification de analyze_file)
+
     - confidence = your certainty from 0 to 100
     - Columns related to nutrition, specs, materials, or any product-specific attributes → map to "extra_info"
     - Return ONLY a valid JSON object, no text before or after, no markdown
@@ -52,14 +34,7 @@ def map_columns(columns_info):
     ...
     }}
 """
-<<<<<<< HEAD
-    response = client.models.generate_content(model="gemini-3.5-flash",contents=prompt,)
-    raw = response.text.strip()
-    raw = raw.replace("```json", "").replace("```", "").strip()
-    mapping = json.loads(raw)
 
-    return mapping
-=======
     for attempt in range(3):
         try:
             response=client.chat.completions.create(model="llama-3.3-70b-versatile",messages=[{"role": "user", "content": prompt}],
@@ -74,7 +49,6 @@ def map_columns(columns_info):
                 time.sleep(5)
             else:
                 raise
->>>>>>> 2d0e8fb (Modification de analyze_file)
 
 
 if __name__ == "__main__":
