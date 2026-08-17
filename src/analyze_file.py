@@ -15,37 +15,26 @@ def analyze_file(filepath: str):
         #verif si une val peut etre interpretee comme un nombre
         def is_numeric(val):
             try:
-                float(str(val).replace(",", ".").replace("€","")
-                      .replace("$","").replace("USD","")
-                      .replace("EUR","").replace("g","").strip())
+                float(str(val).replace(",",".").replace("€","").replace("$","").replace("USD","").replace("EUR","").replace("g","").strip())
                 return True
             except:
                 return False
         #detection du type de la col
-        if len(non_null) == 0:
+        if len(non_null)==0:
             detected_type="empty"
-        elif non_null.apply(is_numeric).mean() > 0.85:
+        elif non_null.apply(is_numeric).mean()>0.85:
             detected_type="numeric"
-        elif non_null.apply(is_numeric).mean() > 0.3:
+        elif non_null.apply(is_numeric).mean()>0.3:
             detected_type="mixed"
         else:
-            detected_type = "text"
+            detected_type="text"
         samples = non_null.head(3).tolist()
         #stock des info de la col
-        col_info[col] = {
-            "type":detected_type,
-            "null_%":null_pct,
-            "sample":samples,
-        }
+        col_info[col] = {"type":detected_type,"null_%":null_pct,"sample":samples,}
     #score de qualité global=moy du remplissage
     quality_score=round(sum(100-v["null_%"] for v in col_info.values())/len(col_info),1)
-    result = {
-        "total_rows":len(df),
-        "total_columns":len(df.columns),
-        "duplicates":int(df.duplicated().sum()),
-        "quality_score":quality_score,
-        "columns":col_info,
-    }
+    result = {"total_rows":len(df),"total_columns":len(df.columns),"duplicates":int(df.duplicated().sum()),
+              "quality_score":quality_score,"columns":col_info}
     return result
 
 
