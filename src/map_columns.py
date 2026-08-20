@@ -11,6 +11,14 @@ schema_cible = ["product_name","brand","category","quantity","price","stock","de
 #ft permet d'envoyer les col names to llm pour les mapper pour avoir schema cible et leurs score de confience
 def map_columns(columns_info):
     cols_summary = ""
+    # Nettoyer les noms de colonnes problématiques
+    clean_info = {}
+    for col, info in columns_info.items():
+        clean_col = col.replace("(€)", "(EUR)").replace("€", "EUR")
+        clean_info[clean_col] = info
+    columns_info = clean_info
+
+    cols_summary = ""
     for col, info in columns_info.items():
         sample = ", ".join(str(s) for s in info["sample"][:2])
         cols_summary += f'- "{col}": type={info["type"]}, examples=[{sample}]\n'
@@ -37,15 +45,25 @@ def map_columns(columns_info):
 
     for attempt in range(3):
         try:
-            response=client.chat.completions.create(model="llama-3.3-70b-versatile",messages=[{"role": "user", "content": prompt}],
-                                                    max_tokens=1000,temperature=0)
-            raw=response.choices[0].message.content.strip()
-            raw=raw.replace("```json","").replace("```","").strip()
+            #model="llama-3.3-70b-versatile",
+            #pour avoir les models dispo : https://console.groq.com/docs/deprecations
+            response=client.chat.completions.create(model="openai/gpt-oss-120b",messages=[{"role": "user", "content": prompt}],
+                                                    max_tokens=1500,temperature=0)
+            raw = response.choices[0].message.content.strip()
+            raw = response.choices[0].message.content.strip()
+            raw = raw.replace("```json", "").replace("```", "").strip()
+
+            start = raw.find("{")
+            end   = raw.rfind("}") + 1
+            if start == -1 or end == 0:
+                raise ValueError("No JSON found in response")
+            raw = raw[start:end]
+
             return json.loads(raw)
 
         except Exception as e:
             if attempt < 2:
-                print(f"Attempt {attempt+1} failed, retrying in 5s...")
+                print(f"***Attempt {attempt+1} failed retrying in 5s***")
                 time.sleep(5)
             else:
                 raise
