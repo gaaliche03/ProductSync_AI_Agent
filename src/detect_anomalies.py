@@ -99,3 +99,18 @@ if __name__ == "__main__":
     report,df_final=detect_anomalies(df_clean)
     print(json.dumps(report,indent=2))
     print(f"\nStatus:\n{df_final['status'].value_counts()}")
+
+    
+
+#explication du reslt du test 
+
+#anomalie1: missing_category : 103 lignes: pb déjà connu 
+#Cat était vide à 77% dans le dataset brut. 103 produits n'ont pas de catégorie après nettoyage.
+#L'agent les marque needs_review pour intervention humaine ou enrichissement LLM 
+
+#anomalie2:missing_price : 15 lignes:
+# 15 produits ont un prix manquant car prix était null dans le dataset brut.
+
+#anomalie3: duplicate_names : 18 lignes 
+#18 lignes ont des noms de produits qui apparaissent plusieurs fois.
+# Ce sont les doublons résiduels que drop_duplicates n'a pas capturés car d'autres colonnes avec un peu de diff.
