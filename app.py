@@ -74,6 +74,7 @@ def render_report(report):
             st.json(v)
 
 
+
 #sidebar
 with st.sidebar:
     st.title("ProductSync ")
@@ -158,14 +159,6 @@ if result:
 
     with tab_report:
         render_report(result.get("report"))
-
-        st.divider()
-
-        try:
-            report_bytes= fetch_report()
-            st.download_button("⬇️ Télécharger le rapport (.md)",data=report_bytes,file_name="report.md",mime="text/markdown")
-        except FileNotFoundError:
-            st.warning("Le fichier report.md n'a pas été trouvé.")
 
     with tab_log:
         for entry in result.get("log", []):
