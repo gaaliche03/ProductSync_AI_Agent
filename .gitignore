@@ -9,5 +9,7 @@ venv/
 
 rapport/
 
-*.pyc
 data/output/
+data/uploads/
+
+note.md

@@ -13,10 +13,18 @@ def clean_price(val):
     val = str(val)
     val = re.sub(r"[€$£]", "", val)
     val = val.replace("EUR", "").replace("USD", "").replace("GBP", "")
-    val = val.replace(",", ".").strip()
+    val = val.strip()
+    #si "," et "." sont présents donc le dernier séparateur est le décimal
+    if "," in val and "." in val:
+        if val.rfind(",") > val.rfind("."):
+            val = val.replace(".", "").replace(",", ".")   #1.299,99
+        else:
+            val = val.replace(",", "")                     #1,299.99
+    else:
+        val = val.replace(",", ".")
     try:
         return round(float(val), 2)
-    except:
+    except (ValueError,TypeError):
         return np.nan
 
 #convrt format stock to int
@@ -28,7 +36,7 @@ def clean_stock(val):
     val=val.replace(",",".").split(".")[0]
     try:
         return int(val)
-    except:
+    except (ValueError, TypeError):
         return np.nan
 
 #normalisation text
@@ -37,12 +45,18 @@ def clean_text(val):
         return np.nan
     return str(val).strip().title()
 
+#nettoyage simple (espaces seulement) : garde la casse d'origine
+def clean_text_simple(val):
+    if pd.isna(val) or str(val).strip()=="":
+        return np.nan
+    return str(val).strip()
+
 #que de num
 def clean_numeric_val(val):
     val = str(val).replace(",",".").replace(" g","").strip()
     try:
         return round(float(val),2)
-    except:
+    except (ValueError, TypeError):
         return val
 
 #merge to extra_info cols dans un string 
@@ -58,6 +72,9 @@ def merge_extra_info(row,extra_cols):
 #retourner dataframe with target schema 
 def clean_data(df,mapping):
     df=df.copy()
+    #nettoyage des noms de la col price avant le rename
+    df.columns=[col.replace("(€)","(EUR)").replace("€","EUR") 
+                for col in df.columns]
 
     #rename cols based on mapping
     rename_map={}
@@ -72,9 +89,9 @@ def clean_data(df,mapping):
         if target=="extra_info":
             extra_info_cols.append(raw_col)
         else:
-            #si target already exists (duplicate mapping) => suffix with _2
+            #si target already exists (duplicate mapping) => envoyer vers extra_info pour ne rien perdre
             if target in rename_map.values():
-                rename_map[raw_col]=target + "_2"
+                extra_info_cols.append(raw_col)
             else:
                 rename_map[raw_col]=target
 
@@ -89,10 +106,16 @@ def clean_data(df,mapping):
         df["stock"]=df["stock"].apply(clean_stock)
 
     #normalize text cols
-    text_cols = ["product_name","brand","category","description","country","labels","quantity"]
+    text_cols = ["product_name","brand","category","country"]
     for col in text_cols:
         if col in df.columns:
             df[col]=df[col].apply(clean_text)
+
+    #description et labels : on garde la casse d'origine
+    simple_cols = ["description","labels"]
+    for col in simple_cols:
+        if col in df.columns:
+            df[col]=df[col].apply(clean_text_simple)
 
     if "quantity" in df.columns:
         df["quantity"]=df["quantity"].apply(
@@ -129,12 +152,11 @@ def clean_data(df,mapping):
     return df
 
 
-#
+
 if __name__ == "__main__":
     df = pd.read_excel(r"C:\Users\MSI\Documents\ProductSync\data\input\products_raw.xlsx")
-    analysis = analyze_file(r"C:\Users\MSI\Documents\ProductSync\data\input\products_raw.xlsx")
-    mapping = map_columns(analysis["columns"])
-    df_clean = clean_data(df, mapping)
-
+    analysis=analyze_file(r"C:\Users\MSI\Documents\ProductSync\data\input\products_raw.xlsx")
+    mapping=map_columns(analysis["columns"])
+    df_clean=clean_data(df, mapping)
     print(df_clean.head(10).to_string())
-    print(f"\nStatus counts:\n{df_clean['status'].value_counts()}")
+    print(f"\nstatus counts:\n{df_clean['status'].value_counts()}")
